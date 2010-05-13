@@ -23,7 +23,8 @@ class Nginx < Formula
 
   def options
     [
-      ['--with-passenger', "Compile with support for Phusion Passenger module"]
+      ['--with-passenger', "Compile with support for Phusion Passenger module"],
+      ['--with-upload-module', "Compile with upload module by Valery Kholodkov"]
     ]
   end
   
@@ -46,8 +47,16 @@ class Nginx < Formula
       "--with-http_ssl_module"
     ]
     
+
     configure_args << passenger_config_args if ARGV.include? '--with-passenger'
     
+
+    if ARGV.include? '--with-upload-module'
+      prepare_nginx_upload_module
+
+      configure_args << "--add-module=./#{nginx_upload_module_dirname}"
+    end
+
     system "./configure", *configure_args
     system "make install"
   end
@@ -61,6 +70,27 @@ If you want to host pages on your local machine to the public, you should
 change that to localhost:80, and run `sudo nginx`. You'll need to turn off
 any other web servers running port 80, of course.
     CAVEATS
+  end
+
+protected
+  def prepare_nginx_upload_module
+    ohai "Downloading #{nginx_upload_module_url}"
+    curl "-O", nginx_upload_module_url
+
+    ohai "Extracting #{nginx_upload_module_filename}"
+    safe_system "/usr/bin/tar", "-zxvf", nginx_upload_module_filename
+  end
+
+  def nginx_upload_module_url
+    "http://www.grid.net.ru/nginx/download/nginx_upload_module-2.0.12.tar.gz"
+  end
+
+  def nginx_upload_module_filename
+    @nginx_upload_module_filename ||= nginx_upload_module_url.split('/').last
+  end
+
+  def nginx_upload_module_dirname
+    nginx_upload_module_filename.sub(".tar.gz", "")
   end
 end
 
