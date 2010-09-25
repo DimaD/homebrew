@@ -1,14 +1,16 @@
 require 'formula'
+require File.join(File.dirname(__FILE__), 'uwsgi')
 
 class Nginx < Formula
   class NginxModule
     attr_accessor :name, :url, :description, :version
 
-    def initialize(name, version, description, url)
+    def initialize(name, version, description, url, options={})
       @name        = name
       @url         = url
       @version     = version
       @description = description
+      @options     = options
     end # initialize(name, url, description)
 
     def to_options_array
@@ -31,6 +33,15 @@ class Nginx < Formula
     def nginx_configuration_argument
       "--add-module=./#{module_dirname}"
     end # nginx_configuration_argument
+
+    def has_dependencies?
+      dependencies.length > 0
+      @options[:depends_on] and @options[:depends_on].length > 0
+    end # has_dependencies?
+
+    def dependencies
+      @dependencies ||= (@options[:depends_on] || []).map { |d| d.to_s }
+    end # dependencies
 
     #
     # To make modules comparable
@@ -75,13 +86,31 @@ class Nginx < Formula
     end # self.included(host)
 
     module ClassMethods
-      def nginx_module(name, version, description, url)
-        available_modules << NginxModule.new(name, version, description, url)
+
+      #
+      # Use this method to define optional modules for base nginx distribution
+      # Positional arguments are self-descriptional.
+      # Available options:
+      #   * :depends_on -- allow to specify homebrew dependencies which should
+      #       be resolved before installation of the module. For example uwsgi-module depends
+      #       on the uwsgi homebrew package
+      def nginx_module(name, version, description, url, options = {})
+        available_modules << NginxModule.new(name, version, description, url, options)
       end # nginx_module(name, description, url)
 
       def available_modules
         @available_modules ||= []
       end # available_modules
+
+      def enabled_modules
+        available_modules.uniq.select do |mod|
+          ARGV.include?(mod.option_switch_name)
+        end
+      end # enabled_modules
+
+      def enabled_modules_with_dependencies
+        enabled_modules.select { |mod| mod.has_dependencies? }
+      end # enabled_modules_with_dependencies
     end # module ClassMethods
 
     module InstanceMethods
@@ -90,9 +119,7 @@ class Nginx < Formula
       end # options_for_available_modules
 
       def enabled_nginx_modules
-        self.class.available_modules.uniq.select do |mod|
-          ARGV.include?(mod.option_switch_name)
-        end
+        self.class.enabled_modules
       end # enabled_nginx_modules
     end # module InstanceMethods
   end # module Modules
@@ -118,7 +145,7 @@ class Nginx
   nginx_module :upload, '2.0.12', 'upload module by Valery Kholodkov', 'http://www.grid.net.ru/nginx/download/nginx_upload_module-2.0.12.tar.gz'
 
   # There is not version in number in the distribution of this module so we made up fake version
-  nginx_module :http_secure, '0.0.1', 'http secure module by Mauro Stettler', 'http://wiki.nginx.org/images/1/10/Ngx_http_secure_download.tar.gz'
+  nginx_module :http_secure, '0.0.1', 'http secure module by Mauro Stettler', 'http://wiki.nginx.org/images/1/10/Ngx_http_secure_download.tar.gz', :depends_on => [:mhash]
 
   def patches
     # Changes default port to 8080
