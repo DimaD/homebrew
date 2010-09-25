@@ -151,6 +151,12 @@ class Nginx
   # There is not version in number in the distribution of this module so we made up fake version
   nginx_module :http_secure, '0.0.1', 'http secure module by Mauro Stettler', 'http://wiki.nginx.org/images/1/10/Ngx_http_secure_download.tar.gz', :depends_on => [:mhash]
 
+  enabled_modules_with_dependencies.each do |mod|
+    mod.dependencies.each do |module_dependency|
+      depends_on module_dependency
+    end
+  end
+
   def patches
     # Changes default port to 8080
     # Set configure to look in homebrew prefix for pcre
