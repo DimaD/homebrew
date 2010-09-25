@@ -1,6 +1,100 @@
 require 'formula'
 
 class Nginx < Formula
+  class NginxModule
+    attr_accessor :name, :url, :description, :version
+
+    def initialize(name, version, description, url)
+      @name        = name
+      @url         = url
+      @version     = version
+      @description = description
+    end # initialize(name, url, description)
+
+    def to_options_array
+      [option_switch_name, option_description]
+    end # to_options_array
+
+    def option_switch_name
+      "--with-#{name}-module"
+    end # option_switch_name
+
+    def option_description
+      "Compile with #{description}"
+    end # option_description
+
+    def brew
+      download_strategy.fetch
+      download_strategy.stage
+    end # brew
+
+    def nginx_configuration_argument
+      "--add-module=./#{module_dirname}"
+    end # nginx_configuration_argument
+
+    #
+    # To make modules comparable
+    #
+    def hash
+      [name, url].hash
+    end # hash
+
+    def eql?(other)
+      self == other
+    end # eql?(other)
+
+    def ==(other_module)
+      return false unless other_module.kind_of?(self.class)
+
+      other_module.name == self.name and other_module.url == self.url
+    end # ==(other_module)
+
+    protected
+
+    def download_strategy
+      @download_strategy ||= CurlDownloadStrategy.new(url, name, version, {})
+    end # download_strategy
+
+    def module_filename
+      @module_filename ||= url.split('/').last
+    end # module_filename
+
+    def module_dirname
+      @module_dirname ||= module_filename.sub(".tar.gz", "")
+    end # module_dirname
+  end # NginxModule
+  
+  module Modules
+    def self.included(host)
+      host.extend(ClassMethods)
+      host.__send__(:include, InstanceMethods)
+    end # self.included(host)
+
+    module ClassMethods
+      def nginx_module(name, version, description, url)
+        available_modules << NginxModule.new(name, version, description, url)
+      end # nginx_module(name, description, url)
+
+      def available_modules
+        @available_modules ||= []
+      end # available_modules
+    end # module ClassMethods
+
+    module InstanceMethods
+      def options_for_available_modules
+        self.class.available_modules.uniq.map { |mod| mod.to_options_array }
+      end # options_for_available_modules
+
+      def enabled_nginx_modules
+        self.class.available_modules.uniq.select do |mod|
+          ARGV.include?(mod.option_switch_name)
+        end
+      end # enabled_nginx_modules
+    end # module InstanceMethods
+  end # module Modules
+end # class Nginx
+
+class Nginx
   url 'http://nginx.org/download/nginx-0.7.67.tar.gz'
   head 'http://nginx.org/download/nginx-0.8.50.tar.gz'
   homepage 'http://nginx.org/'
@@ -22,9 +116,8 @@ class Nginx < Formula
   end
 
   def options
-    [
-      ['--with-passenger', "Compile with support for Phusion Passenger module"]
-    ]
+    [['--with-passenger', "Compile with support for Phusion Passenger module"]] +
+      options_for_available_modules
   end
 
   def passenger_config_args
@@ -45,6 +138,12 @@ class Nginx < Formula
             "--conf-path=#{etc}/nginx/nginx.conf", "--pid-path=#{var}/run/nginx.pid",
             "--lock-path=#{var}/nginx/nginx.lock"]
     args << passenger_config_args if ARGV.include? '--with-passenger'
+
+    enabled_nginx_modules.each do |mod|
+      mod.brew
+
+      args << mod.nginx_configuration_argument
+    end
 
     system "./configure", *args
     system "make install"
