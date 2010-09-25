@@ -109,6 +109,10 @@ class Nginx
 
   skip_clean 'logs'
 
+  include Nginx::Modules
+
+  nginx_module :upload, '2.0.12', 'upload module by Valery Kholodkov', 'http://www.grid.net.ru/nginx/download/nginx_upload_module-2.0.12.tar.gz'
+
   def patches
     # Changes default port to 8080
     # Set configure to look in homebrew prefix for pcre
