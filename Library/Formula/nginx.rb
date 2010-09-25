@@ -149,7 +149,7 @@ class Nginx
   nginx_module :upload, '2.0.12', 'upload module by Valery Kholodkov', 'http://www.grid.net.ru/nginx/download/nginx_upload_module-2.0.12.tar.gz'
 
   # There is not version in number in the distribution of this module so we made up fake version
-  nginx_module :http_secure, '0.0.1', 'http secure module by Mauro Stettler', 'http://wiki.nginx.org/images/1/10/Ngx_http_secure_download.tar.gz', :depends_on => [:mhash]
+  nginx_module :http_secure_download, '0.0.1', 'http secure module by Mauro Stettler', 'http://wiki.nginx.org/images/1/10/Ngx_http_secure_download.tar.gz', :depends_on => [:mhash]
 
   uwsgi_formula = Uwsgi.new
   nginx_module :uwsgi, uwsgi_formula.version, 'uWSGI, fast (pure C), self-healing, developer-friendly WSGI server, aimed for professional python webapps deployment and development', uwsgi_formula.url, :module_dirname => "uwsgi-#{uwsgi_formula.version}/nginx", :depends_on => [:uwsgi]
