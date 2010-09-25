@@ -71,7 +71,7 @@ class Nginx < Formula
     end # module_filename
 
     def module_dirname
-      @module_dirname ||= module_filename.sub(".tar.gz", "")
+      @module_dirname ||= (@options[:module_dirname] || module_filename.sub(".tar.gz", ""))
     end # module_dirname
 
     def dasherized_name
@@ -91,6 +91,10 @@ class Nginx < Formula
       # Use this method to define optional modules for base nginx distribution
       # Positional arguments are self-descriptional.
       # Available options:
+      #   * :module_dirname -- custom dirname of the module which will be usefull with modules
+      #       distributes as a part of the bigger distribution. For example uwsgi-module
+      #       which is bundled with the main uwsgi distribution
+      #
       #   * :depends_on -- allow to specify homebrew dependencies which should
       #       be resolved before installation of the module. For example uwsgi-module depends
       #       on the uwsgi homebrew package
