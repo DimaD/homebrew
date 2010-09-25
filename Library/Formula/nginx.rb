@@ -16,7 +16,7 @@ class Nginx < Formula
     end # to_options_array
 
     def option_switch_name
-      "--with-#{name}-module"
+      @option_switch_name ||= "--with-#{dasherized_name}-module"
     end # option_switch_name
 
     def option_description
@@ -62,6 +62,10 @@ class Nginx < Formula
     def module_dirname
       @module_dirname ||= module_filename.sub(".tar.gz", "")
     end # module_dirname
+
+    def dasherized_name
+      name.to_s.gsub('_', '-')
+    end # dasherized_name
   end # NginxModule
   
   module Modules
