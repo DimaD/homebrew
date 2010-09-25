@@ -22,7 +22,7 @@ class Nginx < Formula
     end # option_switch_name
 
     def option_description
-      "Compile with #{description}"
+      "Compile with #{description} (version #{version})"
     end # option_description
 
     def brew
